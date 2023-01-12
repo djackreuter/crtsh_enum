@@ -4,6 +4,7 @@
 import argparse
 import sys
 import requests
+import dns.resolver
 from termcolor import colored, cprint
 from bs4 import BeautifulSoup
 
@@ -12,7 +13,7 @@ def handle_breaks(row):
     return addrs
 
 def printsubs(subs):
-    for sub in subs.keys():
+    for sub in subs:
         print(sub)
 
 
@@ -52,7 +53,39 @@ def query_site(domain):
         else:
             subs[sub] = 1
 
-        printsubs(subs)
+        printsubs(subs.keys())
+
+    return subs.keys()
+
+
+def resolve_dns(domains):
+    vuln_domains = []
+    for domain in domains:
+        try:
+            dns.resolver.resolve(domain)
+        except:
+            vuln_domains.append(domain)
+
+    return vuln_domains
+
+
+
+
+def check_takeover(domains):
+    cprint('[+] Searching domains for potential subdomain takeovers', 'green')
+    vuln_domains = resolve_dns(domains)
+
+    if len(vuln_domains) == 0:
+        cprint('[!] No vulnerable subdomains found!', 'red')
+        return
+
+    for domain in vuln_domains:
+        try:
+            rdata = dns.resolver.resolve(domain, 'CNAME')
+            for c in rdata:
+                cprint(f'{c.target} Vulnerable!', 'red')
+        except:
+            continue
 
 
 if __name__=='__main__':
@@ -61,10 +94,16 @@ if __name__=='__main__':
     parser.add_argument(
         '-u', help='domain name of site. e.g., test.com'
     )
+    parser.add_argument(
+        '--takeover', help='check if subdomain is vulnerable to a subdomain takeover', action='store_true', default=False
+    )
+
 
     args = parser.parse_args()
     if args.u == None:
         parser.print_help()
         sys.exit()
 
-    query_site(args.u)
+    subs = query_site(args.u)
+    if args.takeover:
+        check_takeover(subs)
