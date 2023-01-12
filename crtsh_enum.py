@@ -79,14 +79,19 @@ def check_takeover(domains):
         cprint('[!] No vulnerable subdomains found!', 'red')
         return
 
+    count = 0
     for domain in vuln_domains:
         try:
             rdata = dns.resolver.resolve(domain, 'CNAME')
+            count = count + 1
             for c in rdata:
                 print(domain)
                 cprint(f'\t{c.target}', 'red')
         except:
             continue
+
+    if count == 0:
+        cprint('[!] No vulnerable subdomains found!', 'red')
 
 
 if __name__=='__main__':
