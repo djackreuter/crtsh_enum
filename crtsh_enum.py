@@ -83,7 +83,8 @@ def check_takeover(domains):
         try:
             rdata = dns.resolver.resolve(domain, 'CNAME')
             for c in rdata:
-                cprint(f'{c.target} Vulnerable!', 'red')
+                print(domain)
+                cprint(f'\t{c.target}', 'red')
         except:
             continue
 
