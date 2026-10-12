@@ -10,4 +10,4 @@ options:
 
 ```
 
-Pulls unique subdomains for a givin domain from crt.sh. Can also check if any of the subdomains are vulnerable to a subdomain takeover due to a dangling CNAME.
+Pulls unique subdomains for a givin domain from ctlogs.dev (api.ctlogs.dev). Can also check if any of the subdomains are vulnerable to a subdomain takeover due to a dangling CNAME.

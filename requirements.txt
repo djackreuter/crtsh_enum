@@ -1,5 +1,4 @@
 argparse
 termcolor
-beautifulsoup4
 requests
 dnspython

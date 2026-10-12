@@ -6,11 +6,7 @@ import sys
 import requests
 import dns.resolver
 from termcolor import colored, cprint
-from bs4 import BeautifulSoup
 
-def handle_breaks(row):
-    addrs = str(row).replace('<td>', '').replace('</td>', '').split('<br/>')
-    return addrs
 
 def printsubs(subs):
     for sub in subs:
@@ -19,41 +15,30 @@ def printsubs(subs):
 
 def query_site(domain):
     cprint(f'[+] Finding subdomains for {domain}', 'green')
-    resp = requests.get(f'https://crt.sh?q={domain}')
+    try:
+        resp = requests.get(f'https://api.ctlogs.dev/v1/hosts/{domain}', timeout=30)
+    except requests.RequestException as e:
+        print(f"Error connecting to ctlogs.dev [{e}]")
+        sys.exit()
 
-    soup = BeautifulSoup(resp.text, 'html.parser')
-    trs = soup.find_all('tr')
+    if resp.status_code != 200:
+        print(f"Error connecting to ctlogs.dev [Status: {resp.status_code}]")
+        sys.exit()
+
+    try:
+        hosts = resp.json().get('hosts') or []
+    except ValueError:
+        print("Error parsing response from ctlogs.dev")
+        sys.exit()
 
     subs = {}
-    for tr in trs:
-        if len(tr.contents) != 15:
+    for entry in hosts:
+        sub = entry.get('host', '').strip().lower()
+        if not sub or sub in subs:
             continue
+        subs[sub] = 1
 
-        row = tr.contents[11]
-        if row.name == 'th':
-            continue
-
-
-        parsed_subs = []
-        if '<br/>' in str(row):
-            parsed_subs = handle_breaks(row)
-
-        if len(parsed_subs) != 0:
-            for sub in parsed_subs:
-                if sub in subs.keys():
-                    continue
-                else:
-                    subs[sub] = 1
-            continue
-
-
-        sub = row.text
-        if sub in subs.keys():
-            continue
-        else:
-            subs[sub] = 1
-
-        printsubs(subs.keys())
+    printsubs(subs.keys())
 
     return subs.keys()
 
@@ -61,6 +46,9 @@ def query_site(domain):
 def resolve_dns(domains):
     vuln_domains = []
     for domain in domains:
+        # wildcard entries (e.g. *.test.com) can't be resolved directly
+        if domain.startswith('*'):
+            continue
         try:
             dns.resolver.resolve(domain)
         except:
